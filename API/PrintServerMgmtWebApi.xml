@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>API</name>
+    </assembly>
+    <members>
+        <member name="M:API.Controllers.PrintersController.Get(API.ApiModels.Printers.GetPrinterRequest)">
+            <summary>
+            Retrieve the printer info by name
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.Delete(API.ApiModels.Printers.DeletePrinterRequest)">
+            <summary>
+            Delete the printer by name
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.Create(API.ApiModels.Printers.CreatePrinterRequest)">
+            <summary>
+            Create printer 
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.Patch(System.String,Microsoft.AspNetCore.JsonPatch.JsonPatchDocument{API.ApiModels.Printers.UpdatePrinterRequest})">
+            <summary>
+            Update printer properties
+            </summary>
+            <param name="printerName"></param>
+            <param name="patchEntity"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.GetQueue(API.ApiModels.Printers.GetPrinterQueueRequest)">
+            <summary>
+            Get printer jobs queue
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.GetDrivers">
+            <summary>
+            Get list of drivers
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.ClearQueue(API.ApiModels.Printers.ClearPrinterQueueRequest)">
+            <summary>
+            Clear printer jobs queue
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.RemoveFromACL(API.ApiModels.Printers.RemoveFromPrinterACLRequest)">
+            <summary>
+            Remove enitity from printer ACL
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+        <member name="M:API.Controllers.PrintersController.AddPrintPermission(API.ApiModels.Printers.AddPrintPermissionRequest)">
+            <summary>
+            Add print permission to ACL for sid entity
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>
