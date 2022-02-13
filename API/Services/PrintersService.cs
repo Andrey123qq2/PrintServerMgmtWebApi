@@ -26,12 +26,12 @@ namespace API.Services
             return response;
         }
 
-        public CreatePrinterResponse Create(CreatePrinterRequest model)
+        public GeneralResponse Create(CreatePrinterRequest model)
         {
-            _repository.Create(model.Name, model.ShareName, model.DriverName, model.Location);
-            var response = new CreatePrinterResponse()
+            ManagementPath result = _repository.Create(model.Name, model.ShareName, model.DriverName, model.Location);
+            var response = new GeneralResponse()
             {
-                Name = model.Name
+                Description = result.ToString()
             };
             return response;
         }
@@ -49,13 +49,13 @@ namespace API.Services
         public UpdatePrinterResponse Update(string printerName, UpdatePrinterRequest model)
         {
             ManagementObject printerManagementObject = _repository.Get(printerName);
-            UpdatePrinterName(printerManagementObject, model.Name);
-            UpdatePrinterProperties(printerManagementObject, model);
+            uint resultRename = UpdatePrinterName(printerManagementObject, model.Name);
+            string resultRenameString = WmiInvokeResult.GetDescription(resultRename);
+            List<string> resultUpdateProperties = UpdatePrinterProperties(printerManagementObject, model);
 
-            var response = new UpdatePrinterResponse()
-            {
-                Name = model.Name
-            };
+            var response = new UpdatePrinterResponse();
+            response.UpdateResultsCollection.Add(resultRenameString);
+            response.UpdateResultsCollection.AddRange(resultUpdateProperties);
             return response;
         }
 
@@ -129,27 +129,36 @@ namespace API.Services
             return response;
         }
 
-        private void UpdatePrinterName(ManagementObject printerManagementObject, string nameInModel)
+        private uint UpdatePrinterName(ManagementObject printerManagementObject, string nameInModel)
         {
+            uint result;
             string currentPrinterName = printerManagementObject.Properties["Name"].Value.ToString();
             if (currentPrinterName != nameInModel)
-                _repository.RenamePrinter(printerManagementObject, nameInModel);
+                result = _repository.RenamePrinter(printerManagementObject, nameInModel);
+            else
+                result = 10001u;
+            return result;
         }
 
-        private void UpdatePrinterProperties(ManagementObject printerManagementObject, UpdatePrinterRequest model)
+        private List<string> UpdatePrinterProperties(ManagementObject printerManagementObject, UpdatePrinterRequest model)
         {
             Type modelType = typeof(UpdatePrinterRequest);
-            modelType.GetProperties()
+            List<string> results = modelType.GetProperties()
                 .Where(p => p.Name != "Name")
                 .ToList()
-                .ForEach(p =>
+                .Select(p =>
                 {
+                    ManagementPath result = new ManagementPath();
                     string propName = p.Name;
                     string printerCurrentValue = printerManagementObject.Properties[propName].Value.ToString();
                     string printerNewValue = modelType.GetProperty(propName).GetValue(model)?.ToString();
                     if (printerNewValue != null && printerCurrentValue != printerNewValue)
-                        _repository.ChangeProperty(printerManagementObject, propName, printerNewValue);
-                });
+                        result = _repository.ChangeProperty(printerManagementObject, propName, printerNewValue);
+                    return result.ToString();
+                })
+                .Where(r => !string.IsNullOrEmpty(r))
+                .ToList();
+            return results;
         }
     }
 }
