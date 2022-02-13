@@ -11,8 +11,8 @@ namespace Domain.Printers
             { 8,  "Unknown failure"},
             { 9,  "The user does not have adequate privileges to execute the method"},
             { 21,  "A parameter specified in the method call is not valid"},
-            { 1000,  "No such entity"},
-            { 1001,  "Entity already exists"},
+            { 10000,  "No such entity"},
+            { 10001,  "Entity already exists"},
         };
 
         public static string GetDescription(uint code)
