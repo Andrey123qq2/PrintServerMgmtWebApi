@@ -7,6 +7,6 @@ namespace API.ApiModels.Printers
 {
     public class UpdatePrinterResponse
     {
-        public string Name { get; set; }
+        public List<string> UpdateResultsCollection { get; set; }
     }
 }
