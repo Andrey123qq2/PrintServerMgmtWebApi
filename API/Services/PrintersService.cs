@@ -28,6 +28,9 @@ namespace API.Services
 
         public GeneralResponse Create(CreatePrinterRequest model)
         {
+            ManagementObject printerManagementObject = _repository.GetPrinterManagementObject(model.Name);
+            if (printerManagementObject != null)
+                return new GeneralResponse { Description = $"Printer {model.Name} already exists" }; 
             ManagementPath result = _repository.Create(model.Name, model.ShareName, model.DriverName, model.Location);
             var response = new GeneralResponse()
             {
@@ -41,21 +44,33 @@ namespace API.Services
             _repository.Delete(model.Name);
             var response = new DeletePrinterResponse()
             {
-                Name = model.Name
+                Description = "Successful completion"
             };
             return response;
         }
 
         public UpdatePrinterResponse Update(string printerName, UpdatePrinterRequest model)
         {
+            var response = new UpdatePrinterResponse
+            {
+                UpdateResultsCollection = new List<string>()
+            };
             ManagementObject printerManagementObject = _repository.Get(printerName);
-            uint resultRename = UpdatePrinterName(printerManagementObject, model.Name);
-            string resultRenameString = WmiInvokeResult.GetDescription(resultRename);
-            List<string> resultUpdateProperties = UpdatePrinterProperties(printerManagementObject, model);
+            if (model.Name != null)
+            {
+                uint resultRename = UpdatePrinterName(printerManagementObject, model.Name);
+                string resultRenameString = WmiInvokeResult.GetDescription(resultRename);
+                response.Description = resultRenameString;
+                response.UpdateResultsCollection.Add(resultRenameString);
+                if (resultRename == 5 || resultRename == 2)
+                    throw new UnauthorizedAccessException(resultRenameString);
+            };
 
-            var response = new UpdatePrinterResponse();
-            response.UpdateResultsCollection.Add(resultRenameString);
+            List<string> resultUpdateProperties = UpdatePrinterProperties(printerManagementObject, model);
             response.UpdateResultsCollection.AddRange(resultUpdateProperties);
+            if (resultUpdateProperties.Count > 0)
+                response.Description = resultUpdateProperties.FirstOrDefault();
+
             return response;
         }
 
@@ -83,13 +98,7 @@ namespace API.Services
 
         public GetPrinterQueueResponse GetQueue(GetPrinterQueueRequest model)
         {
-            ManagementObjectCollection printerQueue = _repository.GetPrinterQueue(model.Name);
-            List<PrintJob> printJobs = printerQueue
-                .Cast<ManagementObject>()
-                .ToList()
-                .Select(m => ManagementObjectConverter.Convert<PrintJob>(m))
-                .ToList();
-
+            List<PrintJob> printJobs = GetPrinterQueue(model.Name);
             var response = new GetPrinterQueueResponse()
             {
                 PrintJobsCollection = printJobs
@@ -97,7 +106,28 @@ namespace API.Services
             return response;
         }
 
-        public GetDriversResponse GetDrivers()
+        public GetPrinterQueueCountResponse GetQueueCount(GetPrinterQueueCountRequest model)
+        {
+            List<PrintJob> printJobs = GetPrinterQueue(model.Name);
+            var response = new GetPrinterQueueCountResponse()
+            {
+                Count = printJobs.Count
+            };
+            return response;
+        }
+
+        private List<PrintJob> GetPrinterQueue(string printerName)
+        {
+            ManagementObjectCollection printerQueue = _repository.GetPrinterQueue(printerName);
+            List<PrintJob> printJobs = printerQueue
+                .Cast<ManagementObject>()
+                .ToList()
+                .Select(m => ManagementObjectConverter.Convert<PrintJob>(m))
+                .ToList();
+            return printJobs;
+        }
+
+        public IEnumerable<PrinterDriver> GetDrivers()
         {
             ManagementObjectCollection driversCollection = _repository.GetDrivers();
             List<PrinterDriver> drivers = driversCollection
@@ -115,7 +145,7 @@ namespace API.Services
             {
                 DriversCollection = drivers
             };
-            return response;
+            return response.DriversCollection;
         }
 
         public ClearPrinterQueueResponse ClearQueue(ClearPrinterQueueRequest model)
