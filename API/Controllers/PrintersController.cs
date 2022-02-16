@@ -1,6 +1,7 @@
 ﻿using API.ApiModels.Printers;
 using API.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -85,6 +86,18 @@ namespace API.Controllers
         public IActionResult GetQueue([FromQuery] GetPrinterQueueRequest request)
         {
             var response = _service.GetQueue(request);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get printer jobs queue count
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public IActionResult GetQueueCount([FromQuery] GetPrinterQueueCountRequest request)
+        {
+            var response = _service.GetQueueCount(request);
             return Ok(response);
         }
 
