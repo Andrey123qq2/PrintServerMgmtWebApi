@@ -7,9 +7,6 @@ namespace API.ApiModels.Printers
 {
     public class DeletePrinterResponse
     {
-        public string Name { get; set; }
-        public string ShareName { get; set; }
-        public string DriverName { get; set; }
-        public string Location { get; set; }
+        public string Description { get; set; }
     }
 }
