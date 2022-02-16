@@ -18,5 +18,6 @@ namespace Domain.Interfaces
         uint RemoveFromACL(string printerName, string entityName);
         uint AddPrintPermission(string printerName, string sid);
         ManagementObjectCollection GetDrivers();
+        ManagementObject GetPrinterManagementObject(string name);
     }
 }
