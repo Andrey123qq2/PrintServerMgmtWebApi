@@ -40,6 +40,13 @@
             <param name="request"></param>
             <returns></returns>
         </member>
+        <member name="M:API.Controllers.PrintersController.GetQueueCount(API.ApiModels.Printers.GetPrinterQueueCountRequest)">
+            <summary>
+            Get printer jobs queue count
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
         <member name="M:API.Controllers.PrintersController.GetDrivers">
             <summary>
             Get list of drivers
