@@ -9,8 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using PrintServerMgmtWebApi.Repository;
+using PrintServerMgmtWebApi.PrintServer;
 using System;
+using System.Linq;
 
 namespace PrintServerMgmtWebApi
 {
@@ -26,10 +27,21 @@ namespace PrintServerMgmtWebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            //services.AddControllersWithViews(options =>
-            //{
-            //    options.InputFormatters.Insert(0, GetJsonPatchInputFormatter());
-            //});
+            services.AddCors();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsApi", builder =>
+                {
+                    builder.WithOrigins(
+                      Configuration["App:CorsOrigins"]
+                        .Split(",", StringSplitOptions.RemoveEmptyEntries)
+                        .ToArray()
+                    ).SetIsOriginAllowedToAllowWildcardSubdomains()
+                     .AllowAnyHeader()
+                     .AllowAnyMethod()
+                     .AllowCredentials();
+                });
+            });
             services.AddAuthentication(IISDefaults.AuthenticationScheme);
             services.AddScoped<PrintServerManagementScope>();
             services.AddScoped<IPrintersRepository, PrintersRepositoryWMI>();
@@ -57,32 +69,35 @@ namespace PrintServerMgmtWebApi
             });
 
             services.AddAuthentication(IISDefaults.AuthenticationScheme);
-            //services.AddSingleton<IClaimsTransformation, ADClaimsTransformer>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseMiddleware<RequestResponseLoggingMiddleware>();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
             app.UseDeveloperExceptionPage();
-            app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
             app.UseHttpsRedirection();
 
             app.UseRouting();
-            app.UseAuthorization();
-            app.UseMiddleware<SwaggerAuthorizationMiddleware>();
-            
 
-            //app.UseSwaggerAuthorized();
+            app.UseCors("CorsApi");
+
+            app.UseAuthorization();
+
+            app.UseMiddleware<SwaggerAuthorizationMiddleware>();
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "PrintServerMgmtWebApi");
             });
+
+            app.UseMiddleware<ErrorHandlerMiddleware>();            
 
             app.UseEndpoints(endpoints =>
             {
