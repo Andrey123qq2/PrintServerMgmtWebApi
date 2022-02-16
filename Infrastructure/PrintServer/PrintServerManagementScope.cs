@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Management;
-using System.Threading.Tasks;
+﻿using System.Management;
 
-namespace PrintServerMgmtWebApi.Repository
+namespace PrintServerMgmtWebApi.PrintServer
 {
     public class PrintServerManagementScope
     {
