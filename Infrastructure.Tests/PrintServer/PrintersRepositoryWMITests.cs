@@ -1,9 +1,11 @@
-﻿using Domain.Interfaces;
+﻿using PrintServerMgmtWebApi.Repository;
+using Domain.Interfaces;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using PrintServerMgmtWebApi.PrintServer;
 
 namespace PrintServerMgmtWebApi.Repository.Tests
 {
@@ -27,6 +29,17 @@ namespace PrintServerMgmtWebApi.Repository.Tests
             string location = "Test Office";
             var result = _repository.Create(printerName, shareName, driverName, location);
             StringAssert.Contains("DeviceID=\"" + printerName, result.ToString());
+        }
+
+        [Test()]
+        public void DeleteTest()
+        {
+            string printerName = "PRN-TEST-API-DELETE";
+            string shareName = "PRN-TEST-API-SHARE-DELETE";
+            string driverName = "HP Universal Printing PCL 6";
+            string location = "Test Office-DELETE";
+            //_repository.Create(printerName, shareName, driverName, location);
+            Assert.DoesNotThrow(() => _repository.Delete(printerName));
         }
 
         [Test()]
