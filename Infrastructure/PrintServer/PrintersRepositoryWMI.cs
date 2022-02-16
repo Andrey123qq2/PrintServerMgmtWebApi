@@ -1,11 +1,11 @@
 ﻿using Domain.Interfaces;
-using System;
+using Infrastructure.PrintServer;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
 using System.Security.AccessControl;
 
-namespace PrintServerMgmtWebApi.Repository
+namespace PrintServerMgmtWebApi.PrintServer
 {
     public class PrintersRepositoryWMI : IPrintersRepository
     {
@@ -20,6 +20,8 @@ namespace PrintServerMgmtWebApi.Repository
         public ManagementObject Get(string printerName)
         {
             ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            if (printerManagementObject == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
             return printerManagementObject;
         }
 
@@ -32,7 +34,10 @@ namespace PrintServerMgmtWebApi.Repository
 
         public void Delete(string printerName)
         {
-            throw new NotImplementedException();
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            if (printerManagementObject == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
+            printerManagementObject.Delete();
         }
 
         public uint RenamePrinter(string printerName, string newName)
@@ -40,7 +45,7 @@ namespace PrintServerMgmtWebApi.Repository
             uint result = 10001u;
             ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
             if (printerManagementObject == null)
-                return 10000u;
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
             string currentPrinterName = printerManagementObject.Properties["Name"].Value.ToString();
             if (currentPrinterName == newName)
                 return result;
@@ -56,8 +61,10 @@ namespace PrintServerMgmtWebApi.Repository
 
         public ManagementPath ChangeProperty(string printerName, string property, string newValue)
         {
-            ManagementPath result = new ManagementPath();
             ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            if (printerManagementObject == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
+            ManagementPath result = new ManagementPath();
             string currentPropertyValue = printerManagementObject.Properties[property].Value.ToString();
             if (currentPropertyValue != newValue)
                 result = ChangeProperty(printerManagementObject, property, newValue);
@@ -82,6 +89,8 @@ namespace PrintServerMgmtWebApi.Repository
         public uint ClearPrinterQueue(string printerName)
         {
             ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            if (printerManagementObject == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
             uint result = (uint)printerManagementObject.InvokeMethod("CancelAllJobs", null);
             return result;
         }
@@ -98,6 +107,8 @@ namespace PrintServerMgmtWebApi.Repository
         {
             uint resultCode = 10000;
             var printer = GetPrinterManagementObject(printerName);
+            if (printer == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
             var result = printer.InvokeMethod("GetSecurityDescriptor", null, null);
             var descriptor = (ManagementBaseObject)result["Descriptor"];
             var flags = (uint)descriptor["ControlFlags"];
@@ -130,6 +141,9 @@ namespace PrintServerMgmtWebApi.Repository
         {
             uint resultCode = 10001;
             var printer = GetPrinterManagementObject(printerName);
+            printer.Scope = _managementScope;
+            if (printer == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
             var result = printer.InvokeMethod("GetSecurityDescriptor", null, null);
             var descriptor = (ManagementBaseObject)result["Descriptor"];
             var flags = (uint)descriptor["ControlFlags"];
@@ -204,10 +218,10 @@ namespace PrintServerMgmtWebApi.Repository
             return false;
         }
 
-        private ManagementObject GetPrinterManagementObject(string printerName)
+        public ManagementObject GetPrinterManagementObject(string printerName)
         {
-            string query = $"SELECT * FROM Win32_Printer WHERE Name='{printerName}'";
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
+            var query = new ObjectQuery($"SELECT * FROM Win32_Printer WHERE Name='{printerName}'");
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher(_managementScope, query);
             ManagementObjectCollection collection = searcher.Get();
             var printerManagementObject = collection.Cast<ManagementObject>().FirstOrDefault();
             return printerManagementObject;
