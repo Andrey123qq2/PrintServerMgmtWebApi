@@ -75,5 +75,12 @@
             <param name="request"></param>
             <returns></returns>
         </member>
+        <member name="M:API.Controllers.PrintersController.RestartSpooler">
+            <summary>
+            Restart Spooler
+            </summary>
+            <param name="request"></param>
+            <returns></returns>
+        </member>
     </members>
 </doc>
