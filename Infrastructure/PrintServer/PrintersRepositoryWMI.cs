@@ -80,6 +80,9 @@ namespace PrintServerMgmtWebApi.PrintServer
 
         public ManagementObjectCollection GetPrinterQueue(string printerName)
         {
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            if (printerManagementObject == null)
+                throw new PrinterNotFoundException($"Printer {printerName} not found");
             string query = $"SELECT * FROM Win32_PrintJob WHERE Name LIKE \"%{printerName}%\"";
             ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
             ManagementObjectCollection collection = searcher.Get();
