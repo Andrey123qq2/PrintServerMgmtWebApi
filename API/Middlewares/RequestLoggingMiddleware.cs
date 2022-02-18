@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IO;
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace API.Middlewares
@@ -12,15 +13,23 @@ namespace API.Middlewares
         private readonly RequestDelegate _next;
         private readonly ILogger _logger;
         private readonly RecyclableMemoryStreamManager _recyclableMemoryStreamManager;
+
         public RequestResponseLoggingMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
         {
             _next = next;
             _logger = loggerFactory.CreateLogger<RequestResponseLoggingMiddleware>();
             _recyclableMemoryStreamManager = new RecyclableMemoryStreamManager();
         }
+
         public async Task Invoke(HttpContext context)
         {
-            _logger.LogInformation(10, await FormatRequest(context));
+            string requestMethodName = Regex.Match(
+                context.Request.Path, 
+                @"/([^/]+)/?$", 
+                RegexOptions.IgnoreCase
+            ).Groups[1].Value.ToString().ToLower();
+            int eventId = RequestLoggingEventIDFactory.Create(requestMethodName);
+            _logger.LogInformation(eventId, await FormatRequest(context));
             _logger.LogInformation(11, await FormatResponse(context));
         }
 
