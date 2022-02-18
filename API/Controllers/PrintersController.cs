@@ -148,5 +148,17 @@ namespace API.Controllers
             var response = _service.AddPrintPermission(request);
             return Ok(response);
         }
+
+        /// <summary>
+        /// Restart Spooler
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public IActionResult RestartSpooler()
+        {
+            var response = _service.RestartSpooler();
+            return Ok(response);
+        }
     }
 }
