@@ -2,6 +2,7 @@
 using Domain.Converters;
 using Domain.Interfaces;
 using Domain.Printers;
+using Infrastructure.WindowsServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -64,6 +65,7 @@ namespace API.Services
                 response.UpdateResultsCollection.Add(resultRenameString);
                 if (resultRename == 5 || resultRename == 2)
                     throw new UnauthorizedAccessException(resultRenameString);
+                printerManagementObject = _repository.Get(model.Name);
             };
 
             List<string> resultUpdateProperties = UpdatePrinterProperties(printerManagementObject, model);
@@ -114,6 +116,13 @@ namespace API.Services
                 Count = printJobs.Count
             };
             return response;
+        }
+
+        public GeneralResponse RestartSpooler()
+        {
+            var serviceController = new WindowsServiceController("spooler");
+            serviceController.RestartService();
+            return new GeneralResponse { Description = "Spooler has been restarted" };
         }
 
         private List<PrintJob> GetPrinterQueue(string printerName)
