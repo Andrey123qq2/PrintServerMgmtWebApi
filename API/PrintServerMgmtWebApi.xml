@@ -25,11 +25,12 @@
             <param name="request"></param>
             <returns></returns>
         </member>
-        <member name="M:API.Controllers.PrintersController.Patch(System.String,Microsoft.AspNetCore.JsonPatch.JsonPatchDocument{API.ApiModels.Printers.UpdatePrinterRequest})">
+        <member name="M:API.Controllers.PrintersController.Patch(System.String,System.String,Microsoft.AspNetCore.JsonPatch.JsonPatchDocument{API.ApiModels.Printers.UpdatePrinterRequest})">
             <summary>
             Update printer properties
             </summary>
             <param name="printerName"></param>
+            <param name="propertyFilter"></param>
             <param name="patchEntity"></param>
             <returns></returns>
         </member>
