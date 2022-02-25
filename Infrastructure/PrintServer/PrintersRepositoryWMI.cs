@@ -17,18 +17,27 @@ namespace PrintServerMgmtWebApi.PrintServer
             _managementScope.Connect();
         }
 
-        public ManagementObject Get(string printerName)
+        public PrintersRepositoryWMI()
         {
-            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            _managementScope = new PrintServerManagementScope().ManagementScope;
+            _managementScope.Connect();
+        }
+
+        public ManagementObject Get(string printerName, string propertyFilter)
+        {
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName, propertyFilter);
             if (printerManagementObject == null)
                 throw new PrinterNotFoundException($"Printer {printerName} not found");
             return printerManagementObject;
         }
 
-        public ManagementPath Create(string printerName, string shareName, string driverName, string location)
+        public ManagementPath Create(string printerName, string shareName, string printerHostName, string driverName, string location, string propertyFilter = "PortName", string comment = "")
         {
-            CreatePrinterPort(printerName);
-            ManagementPath result = CreatePrinter(printerName, shareName, driverName, location);
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerHostName, propertyFilter);
+            if (printerManagementObject != null)
+                throw new PrinterCreateConflictException($"Printer {printerName} already exists");
+            CreatePrinterPort(printerHostName);
+            ManagementPath result = CreatePrinter(printerName, shareName, printerHostName, driverName, location, comment);
             return result;
         }
 
@@ -40,12 +49,12 @@ namespace PrintServerMgmtWebApi.PrintServer
             printerManagementObject.Delete();
         }
 
-        public uint RenamePrinter(string printerName, string newName)
+        public uint RenamePrinter(string printerHostName, string newName, string propertyFilter = "PortName")
         {
             uint result = 10001u;
-            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerHostName, propertyFilter);
             if (printerManagementObject == null)
-                throw new PrinterNotFoundException($"Printer {printerName} not found");
+                throw new PrinterNotFoundException($"Printer {printerHostName} not found");
             string currentPrinterName = printerManagementObject.Properties["Name"].Value.ToString();
             if (currentPrinterName == newName)
                 return result;
@@ -59,11 +68,11 @@ namespace PrintServerMgmtWebApi.PrintServer
             return result;
         }
 
-        public ManagementPath ChangeProperty(string printerName, string property, string newValue)
+        public ManagementPath ChangeProperty(string printerHostName, string property, string newValue, string propertyFilter = "PortName")
         {
-            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerHostName, propertyFilter);
             if (printerManagementObject == null)
-                throw new PrinterNotFoundException($"Printer {printerName} not found");
+                throw new PrinterNotFoundException($"Printer {printerHostName} not found");
             ManagementPath result = new ManagementPath();
             string currentPropertyValue = printerManagementObject.Properties[property].Value.ToString();
             if (currentPropertyValue != newValue)
@@ -78,22 +87,22 @@ namespace PrintServerMgmtWebApi.PrintServer
             return result;
         }
 
-        public ManagementObjectCollection GetPrinterQueue(string printerName)
+        public ManagementObjectCollection GetPrinterQueue(string printerHostName, string printerName, string propertyFilter = "PortName")
         {
-            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerHostName, propertyFilter);
             if (printerManagementObject == null)
-                throw new PrinterNotFoundException($"Printer {printerName} not found");
+                throw new PrinterNotFoundException($"Printer {printerHostName} not found");
             string query = $"SELECT * FROM Win32_PrintJob WHERE Name LIKE \"%{printerName}%\"";
             ManagementObjectSearcher searcher = new ManagementObjectSearcher(query);
             ManagementObjectCollection collection = searcher.Get();
             return collection;
         }
 
-        public uint ClearPrinterQueue(string printerName)
+        public uint ClearPrinterQueue(string printerHostName, string propertyFilter = "PortName")
         {
-            ManagementObject printerManagementObject = GetPrinterManagementObject(printerName);
+            ManagementObject printerManagementObject = GetPrinterManagementObject(printerHostName, propertyFilter);
             if (printerManagementObject == null)
-                throw new PrinterNotFoundException($"Printer {printerName} not found");
+                throw new PrinterNotFoundException($"Printer {printerHostName} not found");
             uint result = (uint)printerManagementObject.InvokeMethod("CancelAllJobs", null);
             return result;
         }
@@ -106,12 +115,12 @@ namespace PrintServerMgmtWebApi.PrintServer
             return collection;
         }
 
-        public uint RemoveFromACL(string printerName, string entityName)
+        public uint RemoveFromACL(string printerHostName, string entityName, string propertyFilter = "PortName")
         {
             uint resultCode = 10000;
-            var printer = GetPrinterManagementObject(printerName);
+            var printer = GetPrinterManagementObject(printerHostName, propertyFilter);
             if (printer == null)
-                throw new PrinterNotFoundException($"Printer {printerName} not found");
+                throw new PrinterNotFoundException($"Printer {printerHostName} not found");
             var result = printer.InvokeMethod("GetSecurityDescriptor", null, null);
             var descriptor = (ManagementBaseObject)result["Descriptor"];
             var flags = (uint)descriptor["ControlFlags"];
@@ -123,7 +132,7 @@ namespace PrintServerMgmtWebApi.PrintServer
                 foreach (var ace in dacl)
                 {
                     var trustee = (ManagementBaseObject)ace["Trustee"];
-                    if (trustee["Name"].ToString() != entityName)
+                    if (trustee["Name"]?.ToString() != entityName)
                         newDaclList.Add(ace);
                     else
                         entityRemoved = true;
@@ -140,13 +149,12 @@ namespace PrintServerMgmtWebApi.PrintServer
             return resultCode;
         }
 
-        public uint AddPrintPermission(string printerName, string sid)
+        public uint AddPrintPermission(string printerHostName, string sid, string propertyFilter = "PortName")
         {
             uint resultCode = 10001;
-            var printer = GetPrinterManagementObject(printerName);
-            printer.Scope = _managementScope;
+            var printer = GetPrinterManagementObject(printerHostName, propertyFilter);
             if (printer == null)
-                throw new PrinterNotFoundException($"Printer {printerName} not found");
+                throw new PrinterNotFoundException($"Printer {printerHostName} not found");
             var result = printer.InvokeMethod("GetSecurityDescriptor", null, null);
             var descriptor = (ManagementBaseObject)result["Descriptor"];
             var flags = (uint)descriptor["ControlFlags"];
@@ -176,37 +184,39 @@ namespace PrintServerMgmtWebApi.PrintServer
             return resultCode;
         }
 
-
-        private ManagementPath CreatePrinter(string printerName, string shareName, string driverName, string location)
+        private ManagementPath CreatePrinter(string printerName, string shareName, string printerHostName, string driverName, string location, string comment = "")
         {
             var printerClass = new ManagementClass(_managementScope, new ManagementPath("Win32_Printer"), new ObjectGetOptions());
             printerClass.Get();
             var printer = printerClass.CreateInstance();
             printer.SetPropertyValue("DriverName", driverName);
-            printer.SetPropertyValue("PortName", printerName);
+            printer.SetPropertyValue("PortName", printerHostName);
             printer.SetPropertyValue("Name", printerName);
             printer.SetPropertyValue("ShareName", shareName);
             printer.SetPropertyValue("DeviceID", printerName);
             printer.SetPropertyValue("Location", location);
+            printer.SetPropertyValue("Comment", comment);
             printer.SetPropertyValue("Network", true);
             printer.SetPropertyValue("Shared", true);
             ManagementPath result = printer.Put();
             return result;
         }
-        private void CreatePrinterPort(string printerName)
+
+        private void CreatePrinterPort(string printerHostName)
         {
-            if (CheckPrinterPort(printerName))
+            if (CheckPrinterPort(printerHostName))
                 return;
             var printerPortClass = new ManagementClass(_managementScope, new ManagementPath("Win32_TCPIPPrinterPort"), new ObjectGetOptions());
             printerPortClass.Get();
             var newPrinterPort = printerPortClass.CreateInstance();
-            newPrinterPort.SetPropertyValue("Name", printerName);
+            newPrinterPort.SetPropertyValue("Name", printerHostName);
             newPrinterPort.SetPropertyValue("Protocol", 1);
-            newPrinterPort.SetPropertyValue("HostAddress", printerName);
+            newPrinterPort.SetPropertyValue("HostAddress", printerHostName);
             newPrinterPort.SetPropertyValue("PortNumber", 9100);
             newPrinterPort.SetPropertyValue("SNMPEnabled", false);
             newPrinterPort.Put();
         }
+
         private bool CheckPrinterPort(string portName)
         {
             //Query system for Operating System information
@@ -221,9 +231,9 @@ namespace PrintServerMgmtWebApi.PrintServer
             return false;
         }
 
-        public ManagementObject GetPrinterManagementObject(string printerName)
+        public ManagementObject GetPrinterManagementObject(string propertyValue, string propertyName = "Name")
         {
-            var query = new ObjectQuery($"SELECT * FROM Win32_Printer WHERE Name='{printerName}'");
+            var query = new ObjectQuery($"SELECT * FROM Win32_Printer WHERE {propertyName}='{propertyValue}'");
             ManagementObjectSearcher searcher = new ManagementObjectSearcher(_managementScope, query);
             ManagementObjectCollection collection = searcher.Get();
             var printerManagementObject = collection.Cast<ManagementObject>().FirstOrDefault();
