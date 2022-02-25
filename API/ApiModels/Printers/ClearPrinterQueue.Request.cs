@@ -10,5 +10,7 @@ namespace API.ApiModels.Printers
     {
         [Required]
         public string Name { get; set; }
+        [Required]
+        public string PropertyFilter { get; set; }
     }
 }

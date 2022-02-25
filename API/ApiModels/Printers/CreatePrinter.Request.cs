@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace API.ApiModels.Printers
 {
@@ -13,7 +9,13 @@ namespace API.ApiModels.Printers
         [Required]
         public string ShareName { get; set; }
         [Required]
+        public string PrinterHostName { get; set; }
+        [Required]
         public string DriverName { get; set; }
+        [Required]
+        public string PropertyFilter { get; set; }
         public string Location { get; set; }
+        public string Comment { get; set; }
+        
     }
 }
