@@ -6,18 +6,18 @@ namespace Domain.Interfaces
 {
     public interface IPrintersRepository
     {
-        ManagementObject Get(string printerName);
-        ManagementPath Create(string printerName, string shareName, string driverName, string location);
+        ManagementObject Get(string printerName, string propertyFilter);
+        ManagementPath Create(string printerName, string shareName, string printerHostName, string driverName, string location, string propertyFilter, string comment);
         void Delete(string printerName);
-        uint RenamePrinter(string printerName, string newName);
+        uint RenamePrinter(string printerHostName, string newName, string propertyFilter);
         uint RenamePrinter(ManagementObject printer, string newName);
-        ManagementPath ChangeProperty(string printerName, string property, string newValue);
+        ManagementPath ChangeProperty(string printerHostName, string property, string newValue, string propertyFilter);
         ManagementPath ChangeProperty(ManagementObject printerManagementObject, string property, string newValue);
-        ManagementObjectCollection GetPrinterQueue(string printerName);
-        uint ClearPrinterQueue(string printerName);
-        uint RemoveFromACL(string printerName, string entityName);
-        uint AddPrintPermission(string printerName, string sid);
+        ManagementObjectCollection GetPrinterQueue(string printerHostName, string printerName, string propertyFilter);
+        uint ClearPrinterQueue(string printerHostName, string propertyFilter);
+        uint RemoveFromACL(string printerHostName, string entityName, string propertyFilter);
+        uint AddPrintPermission(string printerHostName, string sid, string propertyFilter);
         ManagementObjectCollection GetDrivers();
-        ManagementObject GetPrinterManagementObject(string name);
+        ManagementObject GetPrinterManagementObject(string propertyValue, string propertyName);
     }
 }
