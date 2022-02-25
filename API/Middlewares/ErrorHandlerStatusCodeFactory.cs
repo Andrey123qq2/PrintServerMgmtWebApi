@@ -11,6 +11,7 @@ namespace API.Middlewares
             {
                 {  typeof(PrinterNotFoundException), StatusCodes.Status400BadRequest },
                 {  typeof(UnauthorizedAccessException), StatusCodes.Status403Forbidden },
+                {  typeof(PrinterCreateConflictException), StatusCodes.Status409Conflict },
             };
         public static int Create(Type type)
         {
