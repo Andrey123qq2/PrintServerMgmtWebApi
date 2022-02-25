@@ -59,16 +59,17 @@ namespace API.Controllers
         /// Update printer properties
         /// </summary>
         /// <param name="printerName"></param>
+        /// <param name="propertyFilter"></param>
         /// <param name="patchEntity"></param>
         /// <returns></returns>
         [HttpPatch]
-        public IActionResult Patch(string printerName, [FromBody] JsonPatchDocument<UpdatePrinterRequest> patchEntity)
+        public IActionResult Patch(string printerName, string propertyFilter, [FromBody] JsonPatchDocument<UpdatePrinterRequest> patchEntity)
         {
             if (patchEntity != null)
             {
                 var updateRequest = new UpdatePrinterRequest();
                 patchEntity.ApplyTo(updateRequest);
-                var response = _service.Update(printerName, updateRequest);
+                var response = _service.Update(printerName, propertyFilter, updateRequest);
                 return Ok(response);
             }
             else
