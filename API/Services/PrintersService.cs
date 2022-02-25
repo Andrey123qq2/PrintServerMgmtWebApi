@@ -21,7 +21,7 @@ namespace API.Services
 
         public GetPrinterResponse Get(GetPrinterRequest model)
         {
-            ManagementObject printerManagementObject = _repository.Get(model.Name);
+            ManagementObject printerManagementObject = _repository.Get(model.Name, model.PropertyFilter);
             GetPrinterResponse response = ManagementObjectConverter.Convert<GetPrinterResponse>(printerManagementObject);
             response.PrinterStatus = PrinterStatus.GetStatus(int.Parse(response.PrinterStatus));
             return response;
@@ -29,10 +29,8 @@ namespace API.Services
 
         public GeneralResponse Create(CreatePrinterRequest model)
         {
-            ManagementObject printerManagementObject = _repository.GetPrinterManagementObject(model.Name);
-            if (printerManagementObject != null)
-                return new GeneralResponse { Description = $"Printer {model.Name} already exists" }; 
-            ManagementPath result = _repository.Create(model.Name, model.ShareName, model.DriverName, model.Location);
+            ManagementPath result = _repository
+                .Create(model.Name, model.ShareName, model.PrinterHostName, model.DriverName, model.Location, model.PropertyFilter, model.Comment);
             var response = new GeneralResponse()
             {
                 Description = result.ToString()
@@ -50,13 +48,13 @@ namespace API.Services
             return response;
         }
 
-        public UpdatePrinterResponse Update(string printerName, UpdatePrinterRequest model)
+        public UpdatePrinterResponse Update(string printerName, string propertyFilter, UpdatePrinterRequest model)
         {
             var response = new UpdatePrinterResponse
             {
                 UpdateResultsCollection = new List<string>()
             };
-            ManagementObject printerManagementObject = _repository.Get(printerName);
+            ManagementObject printerManagementObject = _repository.Get(printerName, propertyFilter);
             if (model.Name != null)
             {
                 uint resultRename = UpdatePrinterName(printerManagementObject, model.Name);
@@ -65,7 +63,7 @@ namespace API.Services
                 response.UpdateResultsCollection.Add(resultRenameString);
                 if (resultRename == 5 || resultRename == 2)
                     throw new UnauthorizedAccessException(resultRenameString);
-                printerManagementObject = _repository.Get(model.Name);
+                printerManagementObject = _repository.Get(printerName, propertyFilter);
             };
 
             List<string> resultUpdateProperties = UpdatePrinterProperties(printerManagementObject, model);
@@ -78,7 +76,7 @@ namespace API.Services
 
         public RemoveFromPrinterACLResponse RemoveFromACL(RemoveFromPrinterACLRequest model)
         {
-            uint result = _repository.RemoveFromACL(model.Name, model.EntityName);
+            uint result = _repository.RemoveFromACL(model.Name, model.EntityName, model.PropertyFilter);
 
             var response = new RemoveFromPrinterACLResponse()
             {
@@ -89,7 +87,7 @@ namespace API.Services
 
         public AddPrintPermissionResponse AddPrintPermission(AddPrintPermissionRequest model)
         {
-            uint result = _repository.AddPrintPermission(model.Name, model.Sid);
+            uint result = _repository.AddPrintPermission(model.Name, model.Sid, model.PropertyFilter);
 
             var response = new AddPrintPermissionResponse()
             {
@@ -100,7 +98,7 @@ namespace API.Services
 
         public GetPrinterQueueResponse GetQueue(GetPrinterQueueRequest model)
         {
-            List<PrintJob> printJobs = GetPrinterQueue(model.Name);
+            List<PrintJob> printJobs = GetPrinterQueue(model.PrinterHostName, model.Name,  model.PropertyFilter);
             var response = new GetPrinterQueueResponse()
             {
                 PrintJobsCollection = printJobs
@@ -110,7 +108,7 @@ namespace API.Services
 
         public GetPrinterQueueCountResponse GetQueueCount(GetPrinterQueueCountRequest model)
         {
-            List<PrintJob> printJobs = GetPrinterQueue(model.Name);
+            List<PrintJob> printJobs = GetPrinterQueue(model.PrinterHostName, model.Name, model.PropertyFilter);
             var response = new GetPrinterQueueCountResponse()
             {
                 Count = printJobs.Count
@@ -125,9 +123,9 @@ namespace API.Services
             return new GeneralResponse { Description = "Spooler has been restarted" };
         }
 
-        private List<PrintJob> GetPrinterQueue(string printerName)
+        private List<PrintJob> GetPrinterQueue(string printerHostName, string printerName, string propertyFilter)
         {
-            ManagementObjectCollection printerQueue = _repository.GetPrinterQueue(printerName);
+            ManagementObjectCollection printerQueue = _repository.GetPrinterQueue(printerHostName, printerName, propertyFilter);
             List<PrintJob> printJobs = printerQueue
                 .Cast<ManagementObject>()
                 .ToList()
@@ -159,7 +157,7 @@ namespace API.Services
 
         public ClearPrinterQueueResponse ClearQueue(ClearPrinterQueueRequest model)
         {
-            _repository.ClearPrinterQueue(model.Name);
+            _repository.ClearPrinterQueue(model.Name, model.PropertyFilter);
 
             var response = new ClearPrinterQueueResponse()
             {
@@ -168,12 +166,12 @@ namespace API.Services
             return response;
         }
 
-        private uint UpdatePrinterName(ManagementObject printerManagementObject, string nameInModel)
+        private uint UpdatePrinterName(ManagementObject printerManagementObject, string newName)
         {
             uint result;
             string currentPrinterName = printerManagementObject.Properties["Name"].Value.ToString();
-            if (currentPrinterName != nameInModel)
-                result = _repository.RenamePrinter(printerManagementObject, nameInModel);
+            if (currentPrinterName != newName)
+                result = _repository.RenamePrinter(printerManagementObject, newName);
             else
                 result = 10001u;
             return result;
