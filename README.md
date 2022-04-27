@@ -3,7 +3,7 @@ WebAPI for Windows PrintServer management, including swagger
 
 ### Available methods
 | Method | Description | EventLog ID |
-| --------- | ----------- |
+| --------- | ----------- |----------- |
 |`Get`| gets printer by name | 20 |
 |`Delete`| removes printer by name | 30 |
 |`Create`| creates printer by properties | 40 |
